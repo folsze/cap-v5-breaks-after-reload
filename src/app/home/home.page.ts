@@ -11,6 +11,8 @@ import { SQLiteService } from 'src/app/services/sqlite.service';
 import { App } from '@capacitor/app';
 import { ModalPassphrasePage } from 'src/app/pages/modal-passphrase/modal-passphrase.page';
 import { ModalEncryptionPage } from 'src/app/pages/modal-encryption/modal-encryption.page';
+import {HomePageRoutingModule} from "./test-routing.module";
+import {Router} from "@angular/router";
 
 @Component({
   selector: 'app-home',
@@ -25,7 +27,9 @@ export class HomePage  implements OnInit {
   isNative: boolean = false;
   isEncrypt: boolean = false;
 
-  constructor(private initAppService: InitializeAppService,
+  constructor(
+    private router: Router,
+    private initAppService: InitializeAppService,
     private sqliteService: SQLiteService,
     private modalCtrl: ModalController) {
       this.isListDisplay = this.initAppService.isAppInit;
@@ -77,5 +81,8 @@ export class HomePage  implements OnInit {
     await modalEncryption.present();
   }
 
+  route() {
+    this.router.navigate(['/test/mapGroup']);
+  }
 }
 

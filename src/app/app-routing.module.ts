@@ -72,6 +72,11 @@ const routes: Routes = [
     path: 'modal-encryption',
     component: ModalEncryptionPage
   },
+  {
+    path: 'test/:entity',
+    loadChildren: () => import('./test/test.module').then( m => m.TestPageModule)
+  },
+
 ];
 
 @NgModule({

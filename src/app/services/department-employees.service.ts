@@ -1,16 +1,16 @@
-import { SQLiteDBConnection } from '@capacitor-community/sqlite';
+import {capSQLiteChanges, SQLiteDBConnection} from '@capacitor-community/sqlite';
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
+import {BehaviorSubject, catchError, from, Observable} from 'rxjs';
 
 import { SQLiteService } from './sqlite.service';
 import { DbnameVersionService } from './dbname-version.service';
-import { environment } from 'src/environments/environment';
 import { deptEmployeesVersionUpgrades } from 'src/app/upgrades/employee-dept/upgrade-statements';
 
-import { MOCK_EMPLOYEES, MOCK_DEPARTMENTS} from '../mock-data/employees-depts';
 import { Employee, EmployeeData, Department } from '../models/employee-dept';
 import { IdsSeq } from '../models/ids-seq';
-import {Preferences} from '@capacitor/preferences';
+import {MapGroupName} from "../enums/names/MapGroupName";
+import {mapModeLocationVersionUpgrades} from "../upgrades/upgrade-statements";
+import {environment} from "../../environments/environment";
 
 
 @Injectable()
@@ -23,14 +23,14 @@ export class DepartmentEmployeesService {
   private isEmployeeReady: BehaviorSubject<boolean> = new BehaviorSubject(false);
   private isDepartmentReady: BehaviorSubject<boolean> = new BehaviorSubject(false);
   private isIdsSeqReady: BehaviorSubject<boolean> = new BehaviorSubject(false);
-  private versionUpgrades = deptEmployeesVersionUpgrades;
+  private versionUpgrades = mapModeLocationVersionUpgrades;
   private loadToVersion = deptEmployeesVersionUpgrades[deptEmployeesVersionUpgrades.length-1].toVersion;
   private mDb!: SQLiteDBConnection;
 
   constructor(  private sqliteService: SQLiteService,
     private dbVerService: DbnameVersionService,
   ) {
-    this.databaseName = environment.databaseNames.filter(x => x.name.includes('employees'))[0].name;
+    this.databaseName = environment.databaseNames.filter(x => x.name.includes('maps'))[0].name;
   }
 
 
@@ -41,15 +41,11 @@ export class DepartmentEmployeesService {
                             upgrade: this.versionUpgrades});
     // create and/or open the database
     await this.openDatabase();
-
     this.dbVerService.set(this.databaseName,this.loadToVersion);
-
-    const initialDataCreated = (await Preferences.get({ key: 'initialDataCreated' })).value;
     const isData = await this.mDb.query("select * from sqlite_sequence");
     // create database initial data
-    if(!initialDataCreated) {
+    if(isData.values!.length === 0) {
       await this.createInitialData();
-      await Preferences.set({ key: 'initialDataCreated', value: 'true' });
     }
     if( this.sqliteService.platform === 'web') {
       await this.sqliteService.sqliteConnection.saveToStore(this.databaseName);
@@ -65,17 +61,18 @@ export class DepartmentEmployeesService {
                         this.loadToVersion,false);
 
     } else {
+      console.log('WEB MODE');
       this.mDb = await this.sqliteService
         .openDatabase(this.databaseName, false, "no-encryption",
                       this.loadToVersion,false);
     }
   }
   async getAllData() {
-    await this.getAllEmployees();
-    this.isEmployeeReady.next(true);
-
-    await this.getAllDepartments();
-    this.isDepartmentReady.next(true);
+    // await this.getAllEmployees();
+    // this.isEmployeeReady.next(true);
+    //
+    // await this.getAllDepartments();
+    // this.isDepartmentReady.next(true);
     await this.getAllIdsSeq();
     this.isIdsSeqReady.next(true);
   }
@@ -293,6 +290,36 @@ export class DepartmentEmployeesService {
     return employeeJson;
   }
 
+  public dbQuery<T>(stmt: string, stmtValues?: (string | number)[], debugInfo?: string): Observable<T[]> {
+    return from(
+      (async () => {
+        let values;
+        try { // NOTE: this try catch was necessary. Else the error wouldn't get output in the web-console AT ALL!
+          values = (await this.mDb.query(stmt, stmtValues)).values;
+        } catch (error: any) {
+          console.error(error);
+        }
+
+        if (!values) {
+          console.error('Assertion failed');
+        } else if (!(values.length > 0)) {
+          console.error('Assertion failed - didnt expect 0 rows to be modified:', values.length, 'debugInfo', debugInfo);
+          throw new Error('Felix: db query failed');
+        }
+        return values as T[];
+      })()
+    );
+  }
+
+  private dbRun(stmt: string, values?: (string | number)[]): Observable<capSQLiteChanges> {
+    return from(this.mDb.run(stmt, values)).pipe(
+      catchError(err => {
+        console.error(err);
+        throw err; // re-throw the error so it can be caught in the calling function
+      })
+    );
+  }
+
   /*********************
    * Private Functions *
    *********************/
@@ -302,16 +329,18 @@ export class DepartmentEmployeesService {
    * @returns
    */
   private async createInitialData(): Promise<void> {
-    // create departments
-    for (const department of MOCK_DEPARTMENTS) {
-        await this.getDepartment(department);
-    }
-
-    // create employees
-    for (const employee of MOCK_EMPLOYEES) {
-        await this.getEmployee(employee);
-    }
+    console.log('💾 Starting to create initial data...');
+    await this.insertMapGroups()
+    console.log('💾 Finished creating initial data.');
   }
+
+  private async insertMapGroups() {
+    const stmt = `INSERT INTO mapGroup (name) VALUES ${Object.values(MapGroupName).map(() => '(?)').join(', ')}`;
+    const values = Object.values(MapGroupName);
+    await this.mDb.run(stmt, values);
+    // await this.dbRun(stmt, values);
+  }
+
   /**
    * Create Employee
    * @returns
@@ -325,6 +354,18 @@ export class DepartmentEmployeesService {
     }
     employee.deptid = jsonEmployee.deptid;
     return employee;
+  }
+
+  public updateMapGroupName(oldName: MapGroupName, newName: MapGroupName) {
+    const stmt1 = 'UPDATE mapGroup SET name = ? WHERE name = ?';
+    const values1 = [newName, oldName];
+    return this.dbRun(stmt1, values1);
+  }
+
+  public insertNewMapGroup(newName: string) {
+    const stmt = 'INSERT INTO mapGroup (name) VALUES (?)';
+    const values = [newName];
+    return this.dbRun(stmt, values);
   }
 
 }

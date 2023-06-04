@@ -1,0 +1,23 @@
+ion-col {
+  border: solid 1px var(--ion-color-dark);
+  text-align: center;
+}
+
+.header-row {
+  border: 3px solid  var(--ion-color-dark);
+}
+
+.centered-toolbar-title {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+}
+
+ion-col:first-child {
+  width: 50px; /* adjust this value as per your needs */
+  flex: none;  /* this prevents the column from growing and shrinking */
+}
+

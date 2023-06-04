@@ -35,10 +35,10 @@
       </ion-buttons>
       </ion-toolbar>
   </ion-header>
-
   <div id="container">
     <p align="center"><br><img src="https://avatars3.githubusercontent.com/u/16580653?v=4" width="200" height="200" /></p>
     <ion-list *ngIf="isListDisplay" id="home-list">
+      <ion-item (click)="route()">Button</ion-item>
       <ion-item (click)="authorpostsClick()">
         <ion-label>
           Author Posts

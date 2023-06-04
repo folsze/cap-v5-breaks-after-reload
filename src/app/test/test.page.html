@@ -1,0 +1,43 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/"></ion-back-button>
+    </ion-buttons>
+    <ion-title class="centered-toolbar-title">test</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <h1>Database console</h1>
+  <ion-button (click)="runStatement1()">Run Statement1</ion-button>
+  <ion-button (click)="runStatement2()">Run Statement2</ion-button>
+
+  <h2>Entities table</h2>
+  <ion-grid>
+    <ion-row class="header-row" *ngIf="entities$ | async as entities">
+      <ion-col>#</ion-col> <!-- Header for row numbers -->
+      <ion-col *ngFor="let key of Object.keys(entities[0])">{{ key }}</ion-col>
+    </ion-row>
+    <ng-container *ngIf="true">
+      <ng-container *ngIf="(entities$ | async) as entities; else loadingSpinner">
+        <ion-row *ngFor="let entity of entities | slice:0:displayedLocationsCount; let i = index">
+          <ion-col>{{ i + 1 }}</ion-col> <!-- Displaying row number -->
+          <ion-col *ngFor="let key of Object.keys(entity)">{{ getEntityProperties(entity)[key] }}</ion-col>
+        </ion-row>
+        <ion-infinite-scroll (ionInfinite)="onIonInfinite($event)">
+          <ion-infinite-scroll-content></ion-infinite-scroll-content>
+        </ion-infinite-scroll>
+      </ng-container>
+    </ng-container>
+  </ion-grid>
+
+  <ng-template #loadingSpinner>
+    <div>Loading...</div>
+  </ng-template>
+
+</ion-content>
+
+<!--probably works with a single loading spinner-->
+<ng-template #loadingSpinner>
+  <ion-spinner></ion-spinner>
+</ng-template>
