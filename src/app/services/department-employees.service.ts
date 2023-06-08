@@ -42,7 +42,7 @@ export class DepartmentEmployeesService {
     // create and/or open the database
     await this.openDatabase();
     this.dbVerService.set(this.databaseName,this.loadToVersion);
-    const isData = await this.mDb.query("select * from sqlite_sequence");
+    const isData = await this.mDb.query("select * from mapGroup");
     // create database initial data
     if(isData.values!.length === 0) {
       await this.createInitialData();

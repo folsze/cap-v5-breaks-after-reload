@@ -3,7 +3,7 @@
  */
 export enum MapGroupName {
   world = 'World & Topography',
-  // asia = 'Asia',
+  asia = 'Asia',
   // australia = 'Australia',
   // africa = 'Africa',
   // europe = 'Europe',
